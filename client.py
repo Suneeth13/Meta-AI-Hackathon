@@ -44,3 +44,4 @@ class SupportEnv(EnvClient[SupportAction, SupportObservation, SupportState]):
             last_category=payload.get("last_category"),
             last_resolution=payload.get("last_resolution")
         )
+

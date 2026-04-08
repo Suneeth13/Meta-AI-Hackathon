@@ -37,3 +37,4 @@ class SupportState(State):
     last_resolution: Optional[str] = None
     
     model_config = ConfigDict(arbitrary_types_allowed=True)
+

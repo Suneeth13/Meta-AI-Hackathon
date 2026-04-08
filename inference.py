@@ -73,7 +73,7 @@ Reason, then JSON."""
                     seed=42
                 )
                 
-                action_text = response.choices[0].message.content.strip()
+                action_text = (response.choices[0].message.content or "").strip()
                 start = action_text.find('{')
                 end = action_text.rfind('}') + 1
                 action_json = action_text[start:end] if start > 0 else '{}'
