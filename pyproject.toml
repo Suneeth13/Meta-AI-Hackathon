@@ -23,5 +23,5 @@ dev = ["pytest", "ruff"]
 packages = ["Submission/server", "Submission"]
 
 [tool.openenv]
-entrypoint = "Submission/server/app:app"
+entrypoint = "server/app:app"
 
