@@ -71,7 +71,8 @@ def sanitize_action(action_dict):
 
 def run_task(env, client, task_id):
     """Run a single task episode."""
-    print(f"\n--- Running task: {task_id} ---")
+    print(f"\n--- Running task: {task_id} ---", flush=True)
+    print(f"[START] task={task_id}", flush=True)
 
     obs = env.reset().observation
     state = env.state()
@@ -104,7 +105,7 @@ def run_task(env, client, task_id):
             action_dict = parse_action(action_text)
 
         except Exception as e:
-            print(f"API error: {e} → using fallback action")
+            print(f"API error: {e} → using fallback action", flush=True)
             action_dict = {
                 "action_type": "resolve",
                 "resolution": "Please try restarting the service."
@@ -118,17 +119,21 @@ def run_task(env, client, task_id):
         total_reward += result.reward
         steps += 1
 
+        print(f"[STEP] step={steps} reward={result.reward}", flush=True)
         print(
             f"Step {steps}: {action.action_type} | "
-            f"Reward: {result.reward} | Total: {total_reward}"
+            f"Reward: {result.reward} | Total: {total_reward}",
+            flush=True
         )
 
     final_score = get_grader_reward(state)
     avg_reward = total_reward / steps if steps else 0
 
+    print(f"[END] task={task_id} score={final_score} steps={steps}", flush=True)
     print(
         f"{task_id} Score: {final_score} "
-        f"(steps: {steps}, avg reward: {avg_reward:.2f})"
+        f"(steps: {steps}, avg reward: {avg_reward:.2f})",
+        flush=True
     )
 
     return final_score
@@ -146,9 +151,9 @@ def run_baseline():
 
     avg_score = sum(scores.values()) / len(tasks)
 
-    print("\n=== OpenAI Baseline Results ===")
-    print("Scores:", scores)
-    print("Average:", round(avg_score, 2))
+    print("\n=== OpenAI Baseline Results ===", flush=True)
+    print("Scores:", scores, flush=True)
+    print("Average:", round(avg_score, 2), flush=True)
 
     return scores, avg_score
 
@@ -157,6 +162,7 @@ if __name__ == "__main__":
     print(
         "Running OpenAI Baseline...\n"
         "Ensure server is running at http://localhost:8000 "
-        "and OPENAI_API_KEY is set."
+        "and OPENAI_API_KEY is set.",
+        flush=True
     )
     run_baseline()

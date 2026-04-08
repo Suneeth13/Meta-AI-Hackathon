@@ -71,7 +71,8 @@ def sanitize_action(action_dict):
 
 def run_task(env, task_id):
     """Run a single task episode."""
-    print(f"\n--- Running task: {task_id} ---")
+    print(f"\n--- Running task: {task_id} ---", flush=True)
+    print(f"[START] task={task_id}", flush=True)
 
     obs = env.reset(task_id=task_id).observation
     state = env.state()
@@ -94,17 +95,21 @@ def run_task(env, task_id):
         total_reward += result.reward
         steps += 1
 
+        print(f"[STEP] step={steps} reward={result.reward}", flush=True)
         print(
             f"Step {steps}: {action.action_type} | "
-            f"Reward: {result.reward} | Total: {total_reward}"
+            f"Reward: {result.reward} | Total: {total_reward}",
+            flush=True
         )
 
     final_score = get_grader_reward(state)
     avg_reward = total_reward / steps if steps else 0
 
+    print(f"[END] task={task_id} score={final_score} steps={steps}", flush=True)
     print(
         f"{task_id} Score: {final_score} "
-        f"(steps: {steps}, avg reward: {avg_reward:.2f})"
+        f"(steps: {steps}, avg reward: {avg_reward:.2f})",
+        flush=True
     )
 
     return final_score
@@ -121,17 +126,18 @@ def run_baseline():
 
     avg_score = sum(scores.values()) / len(tasks)
 
-    print("\n=== Rule-Based Baseline Results ===")
-    print("Scores:", scores)
-    print("Average:", round(avg_score, 2))
+    print("\n=== Rule-Based Baseline Results ===", flush=True)
+    print("Scores:", scores, flush=True)
+    print(f"\nInference scores: {scores}, Avg: {avg_score:.2f}", flush=True)
 
     return scores, avg_score
 
 
 if __name__ == "__main__":
     print(
-        "Running Rule-Based Baseline...\n"
+        "Running Rule-Based Baseline Inference...\n"
         "Ensure server is running at http://localhost:8000.\n"
-        "No OpenAI API key required!"
+        "No OpenAI API key required!",
+        flush=True
     )
     run_baseline()
