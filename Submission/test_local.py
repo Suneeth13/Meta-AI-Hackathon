@@ -12,7 +12,7 @@ def run_server():
         '--port', '8000',
         '--reload'
     ]
-    proc = subprocess.Popen(cmd, cwd='Submission', env=os.environ.copy())
+    proc = subprocess.Popen(cmd, cwd='.', env=os.environ.copy())
     return proc
 
 def test_inference():

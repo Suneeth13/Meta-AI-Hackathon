@@ -47,10 +47,20 @@ uvicorn server.app:app --reload --port 8000
 
 ## Inference (Pre-submission)
 ```
+# Linux/macOS:
 export API_BASE_URL=https://api.openai.com/v1
 export MODEL_NAME=gpt-4o-mini
 export HF_TOKEN=$OPENAI_API_KEY
 python inference.py  # Run with server up
+
+# Windows (cmd):
+set API_BASE_URL=https://api.openai.com/v1
+set MODEL_NAME=gpt-4o-mini
+set HF_TOKEN=%OPENAI_API_KEY%
+python inference.py  # Run with server up
+
+# Note: .env file created with OPENAI_API_KEY. Files auto-load via python-dotenv.
+# Edit Submission/.env if needed.
 ```
 
 ## Docker/HF

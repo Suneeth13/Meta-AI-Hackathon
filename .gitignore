@@ -26,3 +26,5 @@ Submission/*-info/
 Submission/__pycache__/
 out.txt
 out.err
+.env
+Submission/.env
