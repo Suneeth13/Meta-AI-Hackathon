@@ -1,0 +1,53 @@
+name: customer_support_env
+version: 0.1.0
+description: A real-world simulation of a customer support desk where agents resolve tickets using a knowledge base.
+author: Meta AI Hackathon Participant
+entry_point: server.app:app
+repo_id: submission/customer-support-env
+
+spaces:
+  sdk: docker
+  title: Customer Support OpenEnv
+  app_file: server/app.py
+
+tasks:
+  - id: easy
+    name: Ticket Categorization
+    difficulty: easy
+  - id: medium
+    name: KB Retrieval
+    difficulty: medium
+  - id: hard
+    name: Complex Hardware Troubleshooting
+    difficulty: hard
+
+action_space:
+  type: object
+  properties:
+    action_type:
+      type: string
+      enum: [categorize, search_kb, resolve]
+    query:
+      type: string
+    category:
+      type: string
+    resolution:
+      type: string
+
+observation_space:
+  type: object
+  properties:
+    ticket_id:
+      type: string
+    description:
+      type: string
+    current_category:
+      type: string
+    kb_results:
+      type: array
+      items:
+        type: string
+    status:
+      type: string
+    message:
+      type: string

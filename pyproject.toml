@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "customer-support-openenv"
+version = "0.1.0"
+description = "Customer Support Ticket Resolution OpenEnv"
+authors = [{name = "Suneeth S", email = "ssanapoori@gmail.com"}]
+scripts.server = "server.app:main"
+dependencies = [
+  "openenv-core>=0.2.0",
+  "fastapi",
+  "uvicorn",
+  "pydantic",
+  "openai",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["Submission/server", "Submission"]
+
+[tool.openenv]
+entrypoint = "Submission/server/app:app"
+
