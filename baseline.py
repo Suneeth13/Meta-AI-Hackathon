@@ -1,5 +1,9 @@
 import os
 import json
+import openai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from client import SupportEnv
 from models import SupportAction
@@ -7,45 +11,44 @@ from server.tasks import get_grader_reward
 
 
 MAX_STEPS = 20
+MODEL_NAME = "gpt-4o-mini"
 
 
-def generate_local_action(task_id, obs):
-    """Rule-based action selection for customer support tickets."""
-    desc_lower = obs.description.lower()
+def get_openai_client():
+    """Initialize OpenAI client."""
+    api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("API_BASE_URL")
     
-    # Hard task: hardware/bulb specific
-    if task_id == "hard" or any(word in desc_lower for word in ['bulb', 'light', 'reset', 'flicker', 'blinking']):
-        return {
-            "action_type": "resolve",
-            "resolution": "Please reset your bulb by unplugging it 5 times. This will restore factory settings."
-        }
-    # Medium: KB search for crashes
-    elif task_id == "medium" or any(word in desc_lower for word in ['crash', 'error', 'exception', 'bug', 'failed']):
-        return {
-            "action_type": "search_kb",
-            "query": "software crash error"
-        }
-    # Easy: categorize auth/billing
-    elif task_id == "easy" or any(word in desc_lower for word in ['auth', 'login', 'account', 'password', 'sign in']):
-        return {
-            "action_type": "categorize",
-            "category": "auth"
-        }
-    elif any(word in desc_lower for word in ['billing', 'payment', 'charge', 'subscription', 'invoice', 'refund']):
-        return {
-            "action_type": "categorize",
-            "category": "billing"
-        }
-    else:
-        # Fallback
-        return {
-            "action_type": "resolve",
-            "resolution": "Thank you for contacting support. Our team will investigate and respond shortly."
-        }
+    if not api_key:
+        raise ValueError("API_KEY or OPENAI_API_KEY environment variable not set.")
+    
+    return openai.OpenAI(api_key=api_key, base_url=base_url)
+
+
+def build_prompt(task_id, obs):
+    """Construct prompt for the LLM."""
+    return f"""Task: {task_id}
+Ticket ID: {obs.ticket_id}
+Description: {obs.description}
+Current Category: {getattr(obs, 'current_category', 'None')}
+KB Results: {getattr(obs, 'kb_results', [])}
+Status: {getattr(obs, 'status', 'open')}
+Message: {obs.message}
+
+You are a support agent. Choose the next action.
+
+Output ONLY JSON:
+{{"action_type": "categorize|search_kb|resolve",
+  "query": "optional",
+  "category": "optional",
+  "resolution": "optional"}}
+
+Reason briefly, then output JSON.
+"""
 
 
 def parse_action(response_text):
-    """Extract JSON action safely from response text."""
+    """Extract JSON action safely from model response."""
     try:
         start = response_text.find("{")
         end = response_text.rfind("}") + 1
@@ -69,23 +72,47 @@ def sanitize_action(action_dict):
     return filtered
 
 
-def run_task(env, task_id):
+def run_task(env, client, task_id):
     """Run a single task episode."""
     print(f"\n--- Running task: {task_id} ---", flush=True)
     print(f"[START] task={task_id}", flush=True)
 
-    obs = env.reset(task_id=task_id).observation
+    obs = env.reset().observation
     state = env.state()
 
     total_reward = 0.0
     steps = 0
 
     while not obs.done and steps < MAX_STEPS:
-        # Local rule-based action
-        action_dict = generate_local_action(task_id, obs)
-        action_text = f"Rule-based decision. {json.dumps(action_dict)}"
+        prompt = build_prompt(task_id, obs)
 
-        action_dict = parse_action(action_text)
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a customer support agent. "
+                            "Respond with reasoning followed by valid JSON action."
+                        ),
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.0,
+                max_tokens=300,
+                seed=42,
+            )
+
+            action_text = (response.choices[0].message.content or "").strip()
+            action_dict = parse_action(action_text)
+
+        except Exception as e:
+            print(f"API error: {e} → using fallback action", flush=True)
+            action_dict = {
+                "action_type": "resolve",
+                "resolution": "Please try restarting the service."
+            }
 
         action = SupportAction(**sanitize_action(action_dict))
         result = env.step(action)
@@ -117,27 +144,28 @@ def run_task(env, task_id):
 
 def run_baseline():
     """Run baseline across all tasks."""
+    client = get_openai_client()
     tasks = ["easy", "medium", "hard"]
     scores = {}
 
     with SupportEnv(base_url="http://localhost:8000").sync() as env:
         for task_id in tasks:
-            scores[task_id] = run_task(env, task_id)
+            scores[task_id] = run_task(env, client, task_id)
 
     avg_score = sum(scores.values()) / len(tasks)
 
-    print("\n=== Rule-Based Baseline Results ===", flush=True)
+    print("\n=== OpenAI Baseline Results ===", flush=True)
     print("Scores:", scores, flush=True)
-    print(f"\nInference scores: {scores}, Avg: {avg_score:.2f}", flush=True)
+    print("Average:", round(avg_score, 2), flush=True)
 
     return scores, avg_score
 
 
 if __name__ == "__main__":
     print(
-        "Running Rule-Based Baseline Inference...\n"
-        "Ensure server is running at http://localhost:8000.\n"
-        "No OpenAI API key required!",
+        "Running OpenAI Baseline...\n"
+        "Ensure server is running at http://localhost:8000 "
+        "and API_KEY is set.",
         flush=True
     )
     run_baseline()

@@ -1,5 +1,9 @@
 import os
 import json
+import openai
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from client import SupportEnv
 from models import SupportAction
@@ -7,7 +11,39 @@ from server.tasks import get_grader_reward
 
 
 MAX_STEPS = 20
-MODEL_NAME = "gpt-4o-mini"  # Legacy, using rule-based now
+MODEL_NAME = "gpt-4o-mini"
+
+def get_openai_client():
+    """Initialize OpenAI client with proxy settings."""
+    api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("API_BASE_URL")
+    
+    if not api_key:
+        print("Warning: API_KEY not set. Falling back to rule-based ONLY.")
+        return None
+    
+    return openai.OpenAI(api_key=api_key, base_url=base_url)
+
+def build_prompt(task_id, obs):
+    """Construct prompt for the LLM."""
+    return f"""Task: {task_id}
+Ticket ID: {obs.ticket_id}
+Description: {obs.description}
+Current Category: {getattr(obs, 'current_category', 'None')}
+KB Results: {getattr(obs, 'kb_results', [])}
+Status: {getattr(obs, 'status', 'open')}
+Message: {obs.message}
+
+You are a support agent. Choose the next action.
+
+Output ONLY JSON:
+{{"action_type": "categorize|search_kb|resolve",
+  "query": "optional",
+  "category": "optional",
+  "resolution": "optional"}}
+
+Reason briefly, then output JSON.
+"""
 
 
 def generate_local_action(task_id, obs):
@@ -70,8 +106,8 @@ def sanitize_action(action_dict):
     return filtered
 
 
-def run_task(env, task_id):
-    """Run a single task episode."""
+def run_task(env, client, task_id):
+    """Run a single task episode with LLM and rule-based fallback."""
     print(f"\n--- Running task: {task_id} ---", flush=True)
     print(f"[START] task={task_id}", flush=True)
 
@@ -82,11 +118,31 @@ def run_task(env, task_id):
     steps = 0
 
     while not obs.done and steps < MAX_STEPS:
-        # Local rule-based action
-        action_dict = generate_local_action(task_id, obs)
-        action_text = f"Rule-based decision. {json.dumps(action_dict)}"
+        action_dict = None
+        
+        # 1. Try LLM if client is available
+        if client:
+            try:
+                prompt = build_prompt(task_id, obs)
+                response = client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {"role": "system", "content": "You are a customer support agent. Respond with reasoning then valid JSON."},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=0.0,
+                    max_tokens=300,
+                )
+                action_text = (response.choices[0].message.content or "").strip()
+                action_dict = parse_action(action_text)
+                print(f"LLM Action: {action_dict.get('action_type')}")
+            except Exception as e:
+                print(f"LLM Error: {e}")
 
-        action_dict = parse_action(action_text)
+        # 2. Fallback to Rule-based if LLM failed or not available
+        if not action_dict or action_dict.get("action_type") not in ["categorize", "search_kb", "resolve"]:
+            print("Using Rule-based fallback...")
+            action_dict = generate_local_action(task_id, obs)
 
         action = SupportAction(**sanitize_action(action_dict))
         result = env.step(action)
@@ -118,12 +174,13 @@ def run_task(env, task_id):
 
 def run_inference():
     """Run inference across all tasks."""
+    client = get_openai_client()
     tasks = ["easy", "medium", "hard"]
     scores = {}
 
     with SupportEnv(base_url="http://localhost:8000").sync() as env:
         for task_id in tasks:
-            scores[task_id] = run_task(env, task_id)
+            scores[task_id] = run_task(env, client, task_id)
 
     avg_score = sum(scores.values()) / len(tasks)
 
@@ -133,9 +190,8 @@ def run_inference():
 
 if __name__ == "__main__":
     print(
-        "Running Rule-Based Baseline Inference...\n"
-        "Ensure server is running at http://localhost:8000.\n"
-        "No OpenAI API key required!",
+        "Running LLM-Based Inference (with Rule-Based Fallback)...\n"
+        "Ensure server is running at http://localhost:8000.\n",
         flush=True
     )
     run_inference()

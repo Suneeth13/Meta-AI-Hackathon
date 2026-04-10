@@ -16,10 +16,13 @@ MODEL_NAME = "gpt-4o-mini"
 
 def get_openai_client():
     """Initialize OpenAI client."""
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("API_BASE_URL")
+    
     if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set.")
-    return openai.OpenAI(api_key=api_key)
+        raise ValueError("API_KEY or OPENAI_API_KEY environment variable not set.")
+    
+    return openai.OpenAI(api_key=api_key, base_url=base_url)
 
 
 def build_prompt(task_id, obs):
