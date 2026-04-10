@@ -20,7 +20,7 @@ async def get_grader():
 @app.get("/baseline")
 async def get_baseline():
     return {
-        "easy": 1.0,
+        "easy": 0.99,
         "medium": 0.8,
         "hard": 0.6,
         "average": 0.8

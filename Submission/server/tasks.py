@@ -43,23 +43,23 @@ def get_grader_reward(state: SupportState) -> float:
         # Check categorization
         target = ticket_data.get("category", "").lower()
         if last_category and last_category.lower() == target:
-            return 1.0
-        return 0.0
+            return 0.99
+        return 0.01
     
     elif state.task_id == "medium":
         # Check if the last resolution contains the KB answer
         target_answer = ticket_data.get("answer_key", "").lower()
         res = (last_resolution or "").lower()
         if resolved and target_answer in res:
-            return 1.0
-        return 0.0
+            return 0.99
+        return 0.01
     
     elif state.task_id == "hard":
         # Check for the specific reset instructions in the last resolution
         target_answer = "reset the bulb by turning it off and on 5 times".lower()
         res = (last_resolution or "").lower()
         if resolved and target_answer in res:
-            return 1.0
-        return 0.0
+            return 0.99
+        return 0.01
     
-    return 0.0
+    return 0.01
