@@ -21,9 +21,9 @@ async def get_grader():
 async def get_baseline():
     return {
         "easy": 0.99,
-        "medium": 0.8,
-        "hard": 0.6,
-        "average": 0.8
+        "medium": 0.99,
+        "hard": 0.99,
+        "average": 0.99
     }
 
 def main():

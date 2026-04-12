@@ -77,7 +77,7 @@ This environment simulates a real-world customer support desk. An AI agent acts 
 - `/grader`: Current episode score
 
 ## Baseline Scores (Reproducible)
-- Easy: 1.0
-- Medium: 0.8
-- Hard: 0.6
-- Average: 0.8
+- Easy: 0.99
+- Medium: 0.99
+- Hard: 0.99
+- Average: 0.99

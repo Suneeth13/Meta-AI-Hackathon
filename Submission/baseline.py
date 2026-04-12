@@ -165,7 +165,7 @@ if __name__ == "__main__":
     print(
         "Running OpenAI Baseline...\n"
         "Ensure server is running at http://localhost:8000 "
-        "and OPENAI_API_KEY is set.",
+        "and API_KEY is set.",
         flush=True
     )
     run_baseline()

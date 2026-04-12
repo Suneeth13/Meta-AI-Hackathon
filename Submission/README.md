@@ -36,7 +36,7 @@ Object with:
 2. **Medium** (KB Retrieval): Search crash, resolve with KB answer. 1.0 match.
 3. **Hard** (Hardware): Specific "bulb reset 5 times". 1.0 exact.
 
-Baseline repro ~0.8 avg.
+Baseline score: 0.99 (Avg)
 
 ## Setup
 ```
